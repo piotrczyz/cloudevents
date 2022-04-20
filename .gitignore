@@ -1,4 +1,5 @@
-**/obj/
-**/bin/
-**/.idea/
+**/obj
+**/bin
+**/.idea
 
+**/node_modules
