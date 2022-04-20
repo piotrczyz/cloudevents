@@ -17,12 +17,18 @@ public class PubSubController : ControllerBase
         _publisher = publisher;
     }
 
-    [HttpGet(Name = "SendMessage")]
+    [HttpGet("SendMessage")]
     public async Task Get()
     {
         await _publisher.PublishMessagesAsync(new []
         {
             "Message sent from .NET application"
         });
+    }
+    
+    [HttpGet("ReceiveMessage")]
+    public async Task Receive()
+    {
+        await _publisher.PullMessagesAsync(true, "golang-application-dotnet-subscription");
     }
 }

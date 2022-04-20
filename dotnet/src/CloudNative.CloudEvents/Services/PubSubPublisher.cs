@@ -40,9 +40,9 @@ public class PubSubPublisher
         return publishedMessageCount;
     }
     
-    public async Task<int> PullMessagesAsync(bool acknowledge)
+    public async Task<int> PullMessagesAsync(bool acknowledge, string subscriptionId)
     {
-        SubscriptionName subscriptionName = SubscriptionName.FromProjectSubscription(_config.ProjectId, _config.SubscriptionId);
+        SubscriptionName subscriptionName = SubscriptionName.FromProjectSubscription(_config.ProjectId, subscriptionId);
         SubscriberClient subscriber = await SubscriberClient.CreateAsync(subscriptionName);
         // SubscriberClient runs your message handle function on multiple
         // threads to maximize throughput.
