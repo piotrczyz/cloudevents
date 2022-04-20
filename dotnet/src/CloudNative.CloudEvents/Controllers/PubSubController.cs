@@ -27,8 +27,8 @@ public class PubSubController : ControllerBase
     }
     
     [HttpGet("ReceiveMessage")]
-    public async Task Receive()
+    public async Task<int> Receive()
     {
-        await _publisher.PullMessagesAsync(true, "golang-application-dotnet-subscription");
+        return await _publisher.PullMessagesAsync(true, "golang-application-dotnet-subscription");
     }
 }

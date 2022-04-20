@@ -2,15 +2,15 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"cloud.google.com/go/pubsub"
-	"rsc.io/quote"
+	cloudevents "github.com/cloudevents/sdk-go"
+	"github.com/google/uuid"
 )
 
 func main() {
-	fmt.Println(quote.Go())
-
 	publish("Message published from GoLang application")
 }
 
@@ -26,8 +26,13 @@ func publish(msg string) error {
 	defer client.Close()
 
 	t := client.Topic(topicID)
+	data := createEvent(msg)
+
+	if data == nil {
+		return fmt.Errorf("Data is nil")
+	}
 	result := t.Publish(ctx, &pubsub.Message{
-		Data: []byte(msg),
+		Data: createEvent(msg),
 	})
 	// Block until the result is returned and a server-generated
 	// ID is returned for the published message.
@@ -38,4 +43,27 @@ func publish(msg string) error {
 
 	fmt.Printf("Published a message; msg ID: %v\n", id)
 	return nil
+}
+
+func createEvent(msg string) []byte {
+	event := cloudevents.NewEvent()
+	event.SetID(uuid.New().String())
+	event.SetSource("example/uri")
+	event.SetType("example.type")
+    event.SetDataSchema()
+
+	data := HelloWorldMessage{msg}
+	event.SetData(data)
+
+	bytes, err := json.Marshal(event)
+	if err != nil {
+		println("Error", err.Error())
+		return nil
+	}
+
+	return bytes
+}
+
+type HelloWorldMessage struct {
+	Text string
 }
