@@ -1,4 +1,6 @@
 using CloudEvents.Services;
+using CloudNative.CloudEvents;
+using DotnetApplication;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CloudEvents.Controllers;
@@ -7,7 +9,6 @@ namespace CloudEvents.Controllers;
 [Route("[controller]")]
 public class PubSubController : ControllerBase
 {
-
     private readonly ILogger<PubSubController> _logger;
     private readonly PubSubPublisher _publisher;
 
@@ -20,15 +21,32 @@ public class PubSubController : ControllerBase
     [HttpGet("SendMessage")]
     public async Task Get()
     {
-        await _publisher.PublishMessagesAsync(new []
+        var messages = new List<CloudEvent>
         {
-            "Message sent from .NET application"
-        });
+            new()
+            {
+                Data = new HelloWorldDotNetMessage
+                {
+                    Message = "Hello World"
+                },
+                DataContentType = null,
+                Id = Guid.NewGuid().ToString(),
+                DataSchema = null,
+                Source = new Uri("/PubSub/SendMessage"),
+                Time = DateTimeOffset.Now,
+                Type = typeof(HelloWorldDotNetMessage).FullName
+            }
+        };
+
+        await _publisher.PublishMessagesAsync(messages);
     }
     
     [HttpGet("ReceiveMessage")]
     public async Task<int> Receive()
     {
+        var obj = new HelloWorldDotNetMessage();
+        obj.Message = "Hello World";
+
         return await _publisher.PullMessagesAsync(true, "golang-application-dotnet-subscription");
     }
 }

@@ -1,0 +1,10 @@
+syntax = "proto3";
+    
+package dotnetApplication;
+    
+import "google/protobuf/timestamp.proto";
+
+message HelloWorldDotNetMessage {
+  string message = 1;
+  google.protobuf.Timestamp timestamp = 2;
+}

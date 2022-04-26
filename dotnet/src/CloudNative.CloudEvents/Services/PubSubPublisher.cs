@@ -1,8 +1,12 @@
-using Microsoft.Extensions.Options;
+using CloudNative.CloudEvents;
+using CloudNative.CloudEvents.SystemTextJson;
+using DotnetApplication;
+using Google.Cloud.PubSub.V1;
+using Encoding = System.Text.Encoding;
 
 namespace CloudEvents.Services;
 
-using Google.Cloud.PubSub.V1;
+using Google.Protobuf;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,29 +15,34 @@ using System.Threading.Tasks;
 
 public class PubSubPublisher
 {
+    private static readonly CloudEventFormatter Formatter = new JsonEventFormatter();
     private readonly PubSubOptions _config;
 
     public PubSubPublisher(PubSubOptions config)
     {   
         _config = config;
     }
-    public async Task<int> PublishMessagesAsync(IEnumerable<string> messageTexts)
+    
+    public async Task<int> PublishMessagesAsync(IEnumerable<CloudEvent> cloudEvents)
     {
         TopicName topicName = TopicName.FromProjectTopic(_config.ProjectId, _config.TopicId);
         PublisherClient publisher = await PublisherClient.CreateAsync(topicName);
 
         int publishedMessageCount = 0;
-        var publishTasks = messageTexts.Select(async text =>
+        var publishTasks = cloudEvents.Select(async cloudEvent =>
         {
             try
             {
-                string message = await publisher.PublishAsync(text);
-                Console.WriteLine($"Published message {message}");
+                var bytes = Formatter.EncodeStructuredModeMessage(cloudEvent, out var contentTyp);
+                var json = Encoding.UTF8.GetString(bytes.Span);
+                var messageId = await publisher.PublishAsync(json);
+                
+                Console.WriteLine($"Published message {messageId}");
                 Interlocked.Increment(ref publishedMessageCount);
             }
             catch (Exception exception)
             {
-                Console.WriteLine($"An error ocurred when publishing message {text}: {exception.Message}");
+                Console.WriteLine($"An error occurred when publishing message {cloudEvent}: {exception.Message}");
             }
         });
         await Task.WhenAll(publishTasks);
@@ -49,8 +58,9 @@ public class PubSubPublisher
         int messageCount = 0;
         Task startTask = subscriber.StartAsync((PubsubMessage message, CancellationToken cancel) =>
         {
-            string text = System.Text.Encoding.UTF8.GetString(message.Data.ToArray());
-            Console.WriteLine($"Message {message.MessageId}: {text}");
+            var parser = HelloWorldDotNetMessage.Parser;
+            var parsed = parser.ParseFrom(message.ToByteArray());
+            Console.WriteLine($"Message {message.MessageId}: {parsed.Message}");
             Interlocked.Increment(ref messageCount);
             return Task.FromResult(acknowledge ? SubscriberClient.Reply.Ack : SubscriberClient.Reply.Nack);
         });
