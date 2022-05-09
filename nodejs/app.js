@@ -7,49 +7,51 @@ const timeout = 60;
 // Imports the Google Cloud client library
 const {PubSub, Schema, Encodings} = require('@google-cloud/pubsub');
 
-
-// var obj = proto.HelloWorldDotNetMessage();
-
-// And the protobufjs library
-const protobuf = require('protobufjs');
-
 // Creates a client; cache this for further use
 const pubSubClient = new PubSub();
 
-function listenForProtobufMessages() {
-    // References an existing subscription
-    const subscription = pubSubClient.subscription(subscriptionNameOrId);
+// And the protobufjs library
+const protobuf = require('protobufjs');
+const serializer = require('proto3-json-serializer');
 
-    // Make an decoder using the protobufjs library.
-    //
-    // Since we're providing the test message for a specific schema here, we'll
-    // also code in the path to a sample proto definition.
-    const ce = protobuf.loadSync('cloudevents.proto');
-    const CloudEvent = ce.lookupType('io.cloudevents.v1.CloudEvent')
+const ceProto = protobuf.loadSync('cloudevents.proto');
+const CloudEventType = ceProto.lookupType('io.cloudevents.v1.CloudEvent')
 
-    const root = protobuf.loadSync('messages.proto');
+const msgProto = protobuf.loadSync('messages.proto');
 
-    // Create an event handler to handle messages
+
+async function listenForProtobufMessages(subscriptionNameOrId, timeout) {
+
     let messageCount = 0;
+    const subscription = pubSubClient.subscription(subscriptionNameOrId);
     
-    const messageHandler = message => {
+    const messageHandler = async message => {
 
         message.ack();
-        console.log(`Validation of message: ${  CloudEvent.verify(message)}`);
-      
-        // var parsedMessage = obj.parse(message.data.toString);
+        let result;
 
-        // console.log(`Parsed message: ${parsedMessage}`);
-
-        const Province = root.lookupType('HelloWorldDotNetMessage');
+        console.log(message);
         
-        result = JSON.parse(message.data.toString());
+        if (!message){
+            console.log("Messages is null")
+            return;
+        }
 
-        Province.create()
-        console.log(`Validation of JSON: ${Province.verify(message)}`);
+        const serialziedMessage = serializer.fromProto3JSON(CloudEventType, message);
+      
+        console.log(`Type ${serialziedMessage.type}`);
+        const MsgType = msgProto.lookupType(serialziedMessage.type);
 
+        if (!serialziedMessage || !serialziedMessage.data.toString()){
+            console.log("Data is null")
+            return;
+        }
+        console.log(serialziedMessage.data.toString());
+        const payload = serializer.fromProto3JSON(MsgType, serialziedMessage.data.toString());
+
+        
         console.log(`Received message ${message.id}:`);
-        console.log(`\tData: ${JSON.stringify(result, null, 4)}`);
+        console.log(`\tData: ${JSON.stringify(payload, null, 4)}`);
         console.log(`\tAttributes: ${JSON.stringify(message.attributes, null, 4)}`);
         messageCount += 1;
 
@@ -66,4 +68,4 @@ function listenForProtobufMessages() {
     }, timeout * 1000);
 }
 
-listenForProtobufMessages();
+listenForProtobufMessages(subscriptionNameOrId, 10);

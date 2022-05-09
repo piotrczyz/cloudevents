@@ -50,11 +50,24 @@ public class PubSubController : ControllerBase
         return await _publisher.PullMessagesAsync(true, "test-sub");
     }
 
-    [HttpPost("Topics/{topicName}")]
-    public async Task<string> CreateTopic(string topicName)
+    [HttpGet("Topics")]
+    public List<TopicName> GetTopics()
     {
-        return (await _subscriptionManager.CreateTopic(topicName)).Name;
+        return _subscriptionManager.GetTopics().Select(x => x.TopicName).ToList();
     }
+
+    [HttpPost("Topics/{topicId}")]
+    public async Task<string> CreateTopic(string topicId)
+    {
+        return (await _subscriptionManager.CreateTopic(topicId)).Name;
+    }
+    
+    [HttpDelete("Topics/{topicId}")]
+    public async Task DeleteTopic(string topicId)
+    {
+        await _subscriptionManager.DeleteTopic(topicId);
+    }
+    
     
     /// <summary>
     /// 

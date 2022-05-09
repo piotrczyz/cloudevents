@@ -16,7 +16,7 @@ func main() {
 
 func publish(msg string) error {
 	projectID := "bcc-pubsub-example"
-	topicID := "golang-application"
+	topicID := "test2"
 	// msg := "Hello World"
 	ctx := context.Background()
 	client, err := pubsub.NewClient(ctx, projectID)
@@ -33,6 +33,11 @@ func publish(msg string) error {
 	}
 	result := t.Publish(ctx, &pubsub.Message{
 		Data: createEvent(msg),
+		Attributes: map[string]string{
+			"bccustron":       "true",
+			"bccwroclaw":      "true",
+			"tenantId_poland": "true",
+		},
 	})
 	// Block until the result is returned and a server-generated
 	// ID is returned for the published message.
@@ -50,7 +55,6 @@ func createEvent(msg string) []byte {
 	event.SetID(uuid.New().String())
 	event.SetSource("example/uri")
 	event.SetType("example.type")
-    event.SetDataSchema()
 
 	data := HelloWorldMessage{msg}
 	event.SetData(data)

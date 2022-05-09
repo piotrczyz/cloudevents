@@ -1,3 +1,4 @@
+using Google.Api.Gax.ResourceNames;
 using Google.Cloud.PubSub.V1;
 using Grpc.Core;
 
@@ -10,6 +11,36 @@ public class PubSubSubscriptionManager
     public PubSubSubscriptionManager(PubSubOptions config)
     {   
         _config = config;
+    }
+
+    public IEnumerable<Topic> GetTopics()
+    {
+        var publisher =  PublisherServiceApiClient.Create();
+        var projectName = ProjectName.FromProject(_config.ProjectId);
+        IEnumerable<Topic> topics =  publisher.ListTopics(projectName);
+        return topics;
+    }
+
+    public async Task DeleteTopic(string topicId)
+    {
+        var publisher = await PublisherServiceApiClient.CreateAsync();
+        
+        var topicName = TopicName.FromProjectTopic(_config.ProjectId, topicId);
+        var topic = new Topic
+        {
+            Name = topicName.ToString()
+           
+        };
+
+        try
+        {
+            await publisher.DeleteTopicAsync(topicName);    
+            Console.WriteLine($"Topic {topic.Name} deleted.");
+        }
+        catch (RpcException e) when (e.Status.StatusCode == StatusCode.NotFound)
+        {
+            Console.WriteLine($"Topic {topicName} not deleted.");
+        }
     }
     
     public async Task<Topic> CreateTopic(string topicId)
@@ -60,4 +91,5 @@ public class PubSubSubscriptionManager
         }
         return subscription;
     }
+    
 }
